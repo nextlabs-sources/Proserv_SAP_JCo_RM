@@ -1,0 +1,165 @@
+<!-- build_xlib.xml
+
+Description:
+	This ANT script constructs <project root>/xlib.
+
+	To use this script, you must update properties is <project root>/scripts/build.properties or overide 
+	them from commandline (using -D option). For example:
+		
+		set PATH=C:\depot\external\apache-ant\apache-ant-1.8.4\bin;%PATH%
+		ant -XX:MaxPermSize=512m -Dnlbuildroot=C:/depot/PolicyStudio/dev/BuildScript_1205 -Dexternal.dir=c:/depot/external -Dnlexternaldir=c:/depot/external -f scripts/build_xlib.xml
+		
+	or
+		
+		set PATH=C:\depot\external\apache-ant\apache-ant-1.8.4\bin;%PATH%
+		set ANT_OPTS=-XX:MaxPermSize=512m -Dnlbuildroot=%NLBUILDROOT% -Dexternal.dir=%NLEXTERNALDIR% -Dnlexternaldir=%NLEXTERNALDIR% 
+		ant -f scripts/build_xlib.xml -v	
+-->
+
+<project name="build_xlib" default="all" basedir=".">
+
+	<!-- Debug 
+	<echoproperties />
+	<fail message="INFO: Debug" />
+	-->
+
+	<!-- Property files -->
+	<property file="${basedir}/build.properties" />
+
+	<!-- Global properties -->
+	<property name="xlib_dir" location="${nlbuildroot}/xlib" />
+	<property name="xlib_jar_dir" value="${xlib_dir}/jar" />
+	<property name="java_sdk_dir" location="${xlib_jar_dir}/sapjavasdk/jservice" />
+
+	<!-- TBD: psexternaldir is a temporary variable. It will be removed with all files 
+		under lib are extracted automatically from build artifacts. -->
+	<property name="psexternaldir" location="${nlbuildroot}/lib" />
+
+	<!-- Dump properties -->
+	<echoproperties />
+
+	<echo message="INFO: Dump properties completed" />
+
+	<!-- Sanity checks -->
+	<fail message="nlbuildroot is not set" unless="nlbuildroot" />
+	<fail message="nlbuildroot is empty">
+		<condition>
+			<equals arg1="${nlbuildroot}" arg2="" trim="true" />
+		</condition>
+	</fail>
+	<available file="${nlbuildroot}" type="dir" property="local.nlbuildroot_exists" />
+	<fail message="nlbuildroot directory does not exist - ${nlbuildroot}" unless="local.nlbuildroot_exists" />
+
+	<fail message="nlexternaldir is not set" unless="nlexternaldir" />
+	<fail message="nlexternaldir is empty">
+		<condition>
+			<equals arg1="${nlexternaldir}" arg2="" trim="true" />
+		</condition>
+	</fail>
+	<available file="${nlexternaldir}" type="dir" property="local.nlexternaldir_exists" />
+	<fail message="nlexternaldir directory does not exist - ${nlexternaldir}" unless="local.nlexternaldir_exists" />
+
+	<fail message="xlib_policy_adaptor_sdk_zip_file is not set" unless="xlib_policy_adaptor_sdk_zip_file" />
+	<fail message="xlib_policy_adaptor_sdk_zip_file is empty">
+		<condition>
+			<equals arg1="${xlib_policy_adaptor_sdk_zip_file}" arg2="" trim="true" />
+		</condition>
+	</fail>
+	<available file="${xlib_policy_adaptor_sdk_zip_file}" type="file" property="local.sdk_zip_file_exists" />
+	<fail message="xlib_policy_adaptor_sdk_zip_file directory does not exist - ${xlib_policy_adaptor_sdk_zip_file}" unless="local.sdk_zip_file_exists" />
+
+	<echo message="INFO: Sanity check completed (no error)" />
+
+	<!-- Targets -->
+	<target name="all" depends="clean, prepare_external_jar, prepare_destiny_jar, prepare_sapjavasdk_jar" />
+
+	<target name="prepare_external_jar">
+		<mkdir dir="${xlib_jar_dir}" />
+		<copy file="${nlexternaldir}/apache-poi/poi-3.11/poi-3.11-20141221.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" verbose="true" />
+		<copy file="${nlexternaldir}/apache-poi/poi-3.11/poi-ooxml-3.11-20141221.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" verbose="true" />
+		<copy file="${nlexternaldir}/apache-poi/poi-3.11/poi-ooxml-schemas-3.11-20141221.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" verbose="true" />
+		<copy file="${nlexternaldir}/apache-poi/poi-3.11/ooxml-lib/xmlbeans-2.6.0.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" verbose="true" />
+		<copy file="${nlexternaldir}/commons-io/commons-io-2.4/commons-io-2.4.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" verbose="true" />
+		<copy file="${nlexternaldir}/commons-logging/commons-logging-1.1.1/commons-logging-1.1.1.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" verbose="true" />
+		<copy file="${nlexternaldir}/ehcache/ehcache-1.1/ehcache-1.1.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" verbose="true" />
+		<copy file="${nlexternaldir}/dom4j/dom4j-1.6.1/dom4j-1.6.1.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" verbose="true" />
+		<copy file="${nlexternaldir}/pdfbox/pdfbox-2.0.0/pdfbox-app-2.0.0.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" verbose="true" />
+		<copy file="${nlexternaldir}/commons-text/commons-text-1.8/commons-text-1.8.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" verbose="true" />
+	    <copy file="${nlexternaldir}/commons-configuration/commons-configuration2-2.5/commons-configuration2-2.5.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" verbose="true" />
+	</target>
+
+	<target name="prepare_destiny_jar">
+
+		<copy file="${nlexternaldir}/jsf/jsf-1_1_01/lib/commons-logging.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" verbose="true" />
+		<unzip src="${xlib_destiny_build_artifacts_zip_file}" dest="${xlib_jar_dir}" overwrite="yes">
+			<patternset>
+				<include name="agent/lib/common-pf.jar" />
+				<include name="agent/lib/common-framework-types.jar" />
+				<include name="agent/lib/common-framework.jar" />
+				<include name="agent/lib/agent-controlmanager.jar" />
+				<include name="agent/lib/crypt.jar" />
+			</patternset>
+			<mapper type="flatten" />
+		</unzip>
+
+		<unzip src="${xlib_rmjavasdk_build_artifacts_bin_zip_file}" dest="${xlib_jar_dir}" overwrite="false">
+			<patternset>
+				<include name="lib/rmjavasdk-ng.jar" />
+				<include name="lib/shared.jar" />
+				<include name="lib/gson-2.3.1.jar" />
+				<include name="lib/guava-18.0.jar" />
+				<include name="lib/bcpkix-jdk15on-1.64.jar" />
+				<include name="lib/bcprov-jdk15on-1.64.jar" />
+				<include name="lib/log4j-api-2.10.0.jar" />
+				<include name="lib/log4j-core-2.10.0.jar" />				
+				<include name="lib/commons-codec-1.11.jar" />
+				<include name="lib/commons-lang3-3.5.jar" />
+				<include name="lib/httpclient-4.5.12.jar" />
+				<include name="lib/httpcore-4.4.13.jar" />
+				<include name="lib/httpmime-4.5.12.jar" />
+				
+				
+				
+			</patternset>
+			<mapper type="flatten" />
+		</unzip>
+
+		<unzip src="${xlib_jtagger_zip_file}" dest="${xlib_jar_dir}" overwrite="false">
+			<patternset>
+				<include name="Nextlabs-JTagger/nextlabs-jtagger.jar" />
+			</patternset>
+			<mapper type="flatten"/>
+		</unzip>
+
+		<move file="${xlib_jar_dir}/common-pf.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" />
+		<move file="${xlib_jar_dir}/common-framework-types.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" />
+		<move file="${xlib_jar_dir}/common-framework.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" />
+		<move file="${xlib_jar_dir}/agent-controlmanager.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" />
+		<move file="${xlib_jar_dir}/crypt.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" />
+		<move file="${xlib_jar_dir}/rmjavasdk-ng.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" />
+		<move file="${xlib_jar_dir}/shared.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" />
+		<move file="${xlib_jar_dir}/bcpkix-jdk15on-1.64.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" />
+		<move file="${xlib_jar_dir}/bcprov-jdk15on-1.64.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" />
+		<move file="${xlib_jar_dir}/gson-2.3.1.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" />
+		<move file="${xlib_jar_dir}/guava-18.0.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" />
+		<move file="${xlib_jar_dir}/httpclient-4.5.12.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" />
+		<move file="${xlib_jar_dir}/httpcore-4.4.13.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" />
+		<move file="${xlib_jar_dir}/httpmime-4.5.12.jar" todir="${xlib_jar_dir}" preservelastmodified="true" overwrite="false" />
+	</target>
+
+	<target name="prepare_sapjavasdk_jar">
+		<copy todir="${xlib_dir}" preservelastmodified="true" overwrite="false" verbose="true">
+			<fileset dir="${nlexternaldir}/sapjco/3.0.11">
+				<include name="**/*.*" />
+			</fileset>
+			<fileset dir="${nlexternaldir}/sapjco/3.0.17">
+				<include name="**/*.*" />
+			</fileset>
+		</copy>
+	</target>
+
+	<target name="clean">
+		<delete dir="${xlib_dir}" />
+	</target>
+</project>
+
